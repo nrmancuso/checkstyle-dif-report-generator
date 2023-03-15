@@ -28,7 +28,11 @@ jobs:
         - checkout
         - run:
             name: Clone checkstyle repo
-            command: git clone https://github.com/nrmancuso/checkstyle.git
+            command: |
+              git clone https://github.com/nrmancuso/checkstyle.git
+              cd checkstyle
+              git fetch --all
+              git checkout $PATCH_BRANCH
             working_directory: ~/project
         - run:
             name: Clone contribution repo
@@ -39,10 +43,35 @@ jobs:
             name: Generate regression report
             command: .circleci/scripts/generate-regression-report.sh
             working_directory: ~/project
-        - run: ls -lRT
-        - store_artifacts:
-            path: /tmp/artifact-1
-            destination: artifact-file
+        - run:
+            command: |
+              ls -lRt
+              find . -name "index.html"
+        - run:
+            name: Copy report to directory
+            command: |
+              REPORT_DIR=$(echo $CONFIG_FILE | cut -d'.' -f1)
+              mkdir -p workspace/$REPORT_DIR
+              cp -r contribution/checkstyle-tester/reports/diff workspace/$REPORT_DIR/
+              ls -lRt workspace/$REPORT_DIR
+        - persist_to_workspace:
+            root: ~/project
+            paths:
+              - workspace
+
+  publish-reports:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+
+    steps:
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: List reports to publish
+          command: ls -lRt workspace
+      - store_artifacts:
+          path: workspace
 
 #  generate-antlr-regression-report:
 #    docker:
@@ -50,11 +79,18 @@ jobs:
 #    resource_class: large
 
 workflows:
-  my-workflow:
+  check-regression-report:
     when: << pipeline.parameters.branch_name >>
     jobs:
       - generate-check-regression-report:
-          branch_name: << pipeline.parameters.branch_name >>
-          config_file: "part1.xml"
-
+          matrix:
+            parameters:
+              config_file: [
+                "test.xml",
+                "test1.xml"
+              ]
+              branch_name: [ << pipeline.parameters.branch_name >> ]
+      - publish-reports:
+            requires:
+                - generate-check-regression-report
 
