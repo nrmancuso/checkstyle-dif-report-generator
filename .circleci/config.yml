@@ -36,13 +36,18 @@ jobs:
             working_directory: ~/project
         - run:
             name: Clone contribution repo
-            command: git clone https://github.com/checkstyle/contribution.git
+            command: |
+              git clone https://github.com/nrmancuso/contribution.git
+              cd contribution
+              git fetch --all
+              git checkout mt-groovy
             working_directory: ~/project
         - run: ls
         - run:
             name: Generate regression report
             command: .circleci/scripts/generate-regression-report.sh
             working_directory: ~/project
+            no_output_timeout: 120m
         - run:
             command: |
               ls -lRt
@@ -71,7 +76,7 @@ jobs:
           name: List reports to publish
           command: ls -lRt workspace
       - store_artifacts:
-          path: workspace
+          path: artifacts
 
 #  generate-antlr-regression-report:
 #    docker:
@@ -85,9 +90,19 @@ workflows:
       - generate-check-regression-report:
           matrix:
             parameters:
+              # generate list of config files:
+              #  for f in $(find configs -name '*.xml'); do echo "\"$(echo $f | cut -d '/' -f 2)\","; done
               config_file: [
-                "test.xml",
-                "test1.xml"
+                "part1.xml",
+                "part2.xml",
+                "part3.xml",
+                "part4.xml",
+                "part5.xml",
+                "part6.xml",
+                "checks-nonjavadoc-error.xml",
+                "checks-only-javadoc-error.xml",
+                "sevntu-check-regression_part_1.xml",
+                "sevntu-check-regression_part_2.xml",
               ]
               branch_name: [ << pipeline.parameters.branch_name >> ]
       - publish-reports:
