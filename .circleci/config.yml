@@ -1,17 +1,60 @@
 version: 2.1
 
+parameters:
+  branch_name:
+    type: string
+    default: "issue-12809"
+
 jobs:
-  hello-job:
+  generate-check-regression-report:
+    parameters:
+      branch_name:
+        description: "branch name to test on"
+        type: string
+      config_file:
+        description: "branch name to test on"
+        type: string
     docker:
-      - image: cimg/node:17.2.0 # the primary container, where your job's commands are run
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+      - image: checkstyle/jdk-11-groovy-git-mvn:11.0.13__3.0.9__2.25.1__3.6.3
+    resource_class: large
+    environment:
+      MAVEN_OPTS: -Xmx4096m
+      JAVA_OPTS: -Xmx4096m
+      CHECKSTYLE_DIRECTORY: checkstyle
+      PATCH_BRANCH: << parameters.branch_name >>
+      CONFIG_FILE: << parameters.config_file >>
+
     steps:
-      - checkout # check out the code in the project directory
-      - run: echo "hello world" # run the `echo` command
+        - checkout
+        - run:
+            name: Clone checkstyle repo
+            command: git clone https://github.com/nrmancuso/checkstyle.git
+            working_directory: ~/project
+        - run:
+            name: Clone contribution repo
+            command: git clone https://github.com/checkstyle/contribution.git
+            working_directory: ~/project
+        - run: ls
+        - run:
+            name: Generate regression report
+            command: .circleci/scripts/generate-regression-report.sh
+            working_directory: ~/project
+        - run: ls -lRT
+        - store_artifacts:
+            path: /tmp/artifact-1
+            destination: artifact-file
+
+#  generate-antlr-regression-report:
+#    docker:
+#      - image: checkstyle/jdk-11-groovy-git-mvn
+#    resource_class: large
 
 workflows:
   my-workflow:
+    when: << pipeline.parameters.branch_name >>
     jobs:
-      - hello-job
+      - generate-check-regression-report:
+          branch_name: << pipeline.parameters.branch_name >>
+          config_file: "part1.xml"
+
+
