@@ -18,14 +18,14 @@ jobs:
       ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
 
       # change for report generation
-      PATCH_BRANCH: ci-test-branch
+      PATCH_BRANCH: issue-12809
 
 
     strategy:
       matrix:
         project_name:
           # change for report generation
-          - "MaterialDesignLibrary"
+          - "checkstyle"
 
     steps:
       - name: Checkout
