@@ -20,9 +20,8 @@
     <module name="TreeWalker">
          <!-- Example of checkstyle Check usage -->
          <!-- PLEASE CHANGE IT TO CHECK YOU ARE TESTING !!!! -->
-         <module name="ThrowsCount">
-             <property name="max" value="20000000"/>
-         </module>
+         <module name="IllegalImport"/>
+
 
          <!-- Example of sevntu.checkstyle Check usage -->
          <!-- <module name="NestedSwitchCheck"/> -->
