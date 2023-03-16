@@ -22,9 +22,16 @@ jobs:
     strategy:
       matrix:
         # use config name with no '.xml' extension
+        # generate list with: 'for f in $(find configs -name '*.xml'); do echo " - \"$(echo $f | cut -d '/' -f 2 | cut -d '.' -f 1)\""; done'
         config_name:
-          - test
-          - test1
+          - "part1"
+          - "part2"
+          - "part3"
+          - "part4"
+          - "part5"
+          - "part6"
+          - "sevntu-check-regression_part_1"
+          - "sevntu-check-regression_part_2"
 
     steps:
       - name: Checkout
@@ -45,9 +52,13 @@ jobs:
           repository: checkstyle/contribution
           path: contribution
 
-      - name: Checkout patch branch, for some reason we need to do this
+      - name: Set up local checkstyle repo
         run: |
           cd "${ROOT_DIR}/checkstyle"
+          git remote add upstream https://github.com/checkstyle/checkstyle
+          git fetch --all
+          git checkout master
+          git reset --hard upstream/master
           git checkout $PATCH_BRANCH
 
       - name: Generate report
