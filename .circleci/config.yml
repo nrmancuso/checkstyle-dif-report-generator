@@ -1,17 +1,122 @@
 version: 2.1
 
+parameters:
+  branch_name:
+    type: string
+    default: "issue-12809"
+
 jobs:
-  hello-job:
+  generate-check-regression-report:
+    parameters:
+      branch_name:
+        description: "branch name to test on"
+        type: string
+      config_file:
+        description: "branch name to test on"
+        type: string
     docker:
-      - image: cimg/node:17.2.0 # the primary container, where your job's commands are run
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+      - image: checkstyle/jdk-11-groovy-git-mvn:11.0.13__3.0.9__2.25.1__3.6.3
+    resource_class: large
+    environment:
+      MAVEN_OPTS: -Xmx4096m
+      JAVA_OPTS: -Xmx4096m
+      CHECKSTYLE_DIRECTORY: checkstyle
+      PATCH_BRANCH: << parameters.branch_name >>
+      CONFIG_FILE: << parameters.config_file >>
+
     steps:
-      - checkout # check out the code in the project directory
-      - run: echo "hello world" # run the `echo` command
+        - checkout
+        - run:
+            name: Clone checkstyle repo
+            command: |
+              git clone https://github.com/nrmancuso/checkstyle.git
+              cd checkstyle
+              git fetch --all
+              git checkout $PATCH_BRANCH
+            working_directory: ~/project
+        - run:
+            name: Clone contribution repo
+            command: |
+              git clone https://github.com/nrmancuso/contribution.git
+              cd contribution
+              git fetch --all
+              git checkout mt-groovy
+            working_directory: ~/project
+        - run: ls
+        - run:
+            name: Generate regression report
+            command: .circleci/scripts/generate-regression-report.sh
+            working_directory: ~/project
+            no_output_timeout: 120m
+        - run:
+            command: |
+              ls -lRt
+              find . -name "index.html"
+        - run:
+            name: Copy report to directory
+            command: |
+              REPORT_DIR=$(echo $CONFIG_FILE | cut -d'.' -f1)
+              mkdir -p workspace/$REPORT_DIR
+              cp -r contribution/checkstyle-tester/reports/diff workspace/$REPORT_DIR/
+              ls -lRt workspace/$REPORT_DIR
+        - persist_to_workspace:
+            root: ~/project
+            paths:
+              - workspace
+
+  publish-reports:
+    docker:
+      - image: cimg/base:stable
+    resource_class: small
+
+    steps:
+      - attach_workspace:
+          at: workspace
+      - run:
+          name: List reports to publish
+          command: ls -lRt workspace
+      - store_artifacts:
+          path: artifacts
+
+#  generate-antlr-regression-report:
+#    docker:
+#      - image: checkstyle/jdk-11-groovy-git-mvn
+#    resource_class: large
+
+  hello-world:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Hello world
+          command: echo "Hello world"
 
 workflows:
-  my-workflow:
+  hello:
     jobs:
-      - hello-job
+      - hello-world
+#  check-regression-report:
+#    when: << pipeline.parameters.branch_name >>
+#    jobs:
+#      - generate-check-regression-report:
+#          matrix:
+#            parameters:
+#              # generate list of config files:
+#              #  for f in $(find configs -name '*.xml'); do echo "\"$(echo $f | cut -d '/' -f 2)\","; done
+#              config_file: [
+#                "part1.xml",
+#                "part2.xml",
+#                "part3.xml",
+#                "part4.xml",
+#                "part5.xml",
+#                "part6.xml",
+#                "checks-nonjavadoc-error.xml",
+#                "checks-only-javadoc-error.xml",
+#                "sevntu-check-regression_part_1.xml",
+#                "sevntu-check-regression_part_2.xml",
+#              ]
+#              branch_name: [ << pipeline.parameters.branch_name >> ]
+#      - publish-reports:
+#            requires:
+#                - generate-check-regression-report
+

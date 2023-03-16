@@ -1,0 +1,63 @@
+name: Generate Check Regression Reports
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: '*'
+
+jobs:
+  generate_check_regression_report:
+    runs-on: ubuntu-latest
+    container: checkstyle/jdk-11-groovy-git-mvn:11.0.13__3.0.9__2.25.1__3.6.3
+    env:
+        MAVEN_OPTS: -Xmx4096m
+        JAVA_OPTS: -Xmx4096m
+        CHECKSTYLE_DIRECTORY: checkstyle
+        PATCH_BRANCH: issue-12809
+        PROJECTS_FILE: test-projects.properties
+        ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
+
+    strategy:
+      matrix:
+        # use config name with no '.xml' extension
+        config_name:
+          - test
+          - test1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: main
+
+      - name: Checkout Checkstyle
+        uses: actions/checkout@v3
+        with:
+          repository: nrmancuso/checkstyle
+          path: checkstyle
+          fetch-depth: 0
+
+      - name: Checkout Contribution
+        uses: actions/checkout@v3
+        with:
+          repository: checkstyle/contribution
+          path: contribution
+
+      - name: Checkout patch branch, for some reason we need to do this
+        run: |
+          cd "${ROOT_DIR}/checkstyle"
+          git checkout $PATCH_BRANCH
+
+      - name: Generate report
+        env:
+          CONFIG_FILE: ${{ matrix.config_name }}.xml
+        run: main/scripts/generate-regression-report.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ matrix.config_name }}-report
+          path: contribution/checkstyle-tester/reports/diff
+          retention-days: 60
