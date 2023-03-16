@@ -83,29 +83,40 @@ jobs:
 #      - image: checkstyle/jdk-11-groovy-git-mvn
 #    resource_class: large
 
+  hello-world:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Hello world
+          command: echo "Hello world"
+
 workflows:
-  check-regression-report:
-    when: << pipeline.parameters.branch_name >>
+  hello:
     jobs:
-      - generate-check-regression-report:
-          matrix:
-            parameters:
-              # generate list of config files:
-              #  for f in $(find configs -name '*.xml'); do echo "\"$(echo $f | cut -d '/' -f 2)\","; done
-              config_file: [
-                "part1.xml",
-                "part2.xml",
-                "part3.xml",
-                "part4.xml",
-                "part5.xml",
-                "part6.xml",
-                "checks-nonjavadoc-error.xml",
-                "checks-only-javadoc-error.xml",
-                "sevntu-check-regression_part_1.xml",
-                "sevntu-check-regression_part_2.xml",
-              ]
-              branch_name: [ << pipeline.parameters.branch_name >> ]
-      - publish-reports:
-            requires:
-                - generate-check-regression-report
+      - hello-world
+#  check-regression-report:
+#    when: << pipeline.parameters.branch_name >>
+#    jobs:
+#      - generate-check-regression-report:
+#          matrix:
+#            parameters:
+#              # generate list of config files:
+#              #  for f in $(find configs -name '*.xml'); do echo "\"$(echo $f | cut -d '/' -f 2)\","; done
+#              config_file: [
+#                "part1.xml",
+#                "part2.xml",
+#                "part3.xml",
+#                "part4.xml",
+#                "part5.xml",
+#                "part6.xml",
+#                "checks-nonjavadoc-error.xml",
+#                "checks-only-javadoc-error.xml",
+#                "sevntu-check-regression_part_1.xml",
+#                "sevntu-check-regression_part_2.xml",
+#              ]
+#              branch_name: [ << pipeline.parameters.branch_name >> ]
+#      - publish-reports:
+#            requires:
+#                - generate-check-regression-report
 
