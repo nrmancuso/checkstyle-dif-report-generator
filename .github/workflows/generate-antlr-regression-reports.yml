@@ -1,4 +1,4 @@
-name: Generate Check Regression Reports
+name: Generate ANTLR Regression Reports
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     branches: '*'
 
 jobs:
-  generate_check_regression_report:
+  generate_antlr_regression_report:
     runs-on: ubuntu-latest
     container: checkstyle/jdk-11-groovy-git-mvn:11.0.13__3.0.9__2.25.1__3.6.3
     env:
@@ -17,24 +17,14 @@ jobs:
       CHECKSTYLE_DIRECTORY: checkstyle
       ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
 
-      ## change these for report generation
+      # change for report generation
       PATCH_BRANCH: issue-12809
-      PROJECTS_FILE: test-projects.properties
 
     strategy:
       matrix:
-        # use config name with no '.xml' extension
-        # generate list with: 'for f in $(find configs -name '*.xml'); do echo " - \"$(echo $f | cut -d '/' -f 2 | cut -d '.' -f 1)\""; done'
-        config_name:
-          - "test"
-#          - "part1"
-#          - "part2"
-#          - "part3"
-#          - "part4"
-#          - "part5"
-#          - "part6"
-#          - "sevntu-check-regression_part_1"
-#          - "sevntu-check-regression_part_2"
+        project_name:
+          # change for report generation
+          - "MaterialDesignLibrary"
 
     steps:
       - name: Checkout
@@ -55,6 +45,11 @@ jobs:
           repository: checkstyle/contribution
           path: contribution
 
+      - name: Build patch-diff-report-tool
+        run: |
+          cd "${ROOT_DIR}/contribution/patch-diff-report-tool"
+          mvn clean install
+
       - name: Set up local checkstyle repo
         run: |
           cd "${ROOT_DIR}/checkstyle"
@@ -66,12 +61,12 @@ jobs:
 
       - name: Generate report
         env:
-          CONFIG_FILE: ${{ matrix.config_name }}.xml
-        run: main/scripts/generate-check-regression-report.sh
+          PROJECT: ${{ matrix.project_name }}
+        run: ./main/scripts/generate-antlr-regression-report.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.config_name }}-report
+          name: antlr-report
           path: contribution/checkstyle-tester/reports/diff
           retention-days: 60
