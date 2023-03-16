@@ -18,7 +18,7 @@ jobs:
       ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
 
       ## change these for report generation
-      PATCH_BRANCH: issue-12809
+      PATCH_BRANCH: ci-test-branch
       PROJECTS_FILE: test-projects.properties
 
     strategy:
