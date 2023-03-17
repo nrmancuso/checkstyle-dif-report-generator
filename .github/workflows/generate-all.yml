@@ -1,0 +1,25 @@
+name: Generate all reports (ANTLR and check regression)
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches: '*'
+
+jobs:
+  run-generate-antlr-regression-report:
+    uses: ./.github/workflows/generate-antlr-regression-reports.yml
+
+  run-generate-check-regression-report:
+    uses: ./.github/workflows/generate-check-regression-reports.yml
+
+  run-commit-reports:
+    uses: ./.github/workflows/commit-reports.yml
+    with:
+      # change this for report generation
+      patch-branch: ci-test-branch
+    needs: [
+      run-generate-antlr-regression-report,
+      run-generate-check-regression-report
+    ]

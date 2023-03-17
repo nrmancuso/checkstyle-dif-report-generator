@@ -1,11 +1,8 @@
 name: Generate ANTLR Regression Reports
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches: '*'
+  - workflow_call
+  - workflow_dispatch
 
 jobs:
   generate_antlr_regression_report:
