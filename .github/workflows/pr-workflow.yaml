@@ -1,0 +1,35 @@
+name: PR Workflow
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+env:
+  PATCH_BRANCH: 'ci-test-branch'
+
+jobs:
+  run-generate-antlr-regression-report:
+    uses: ./.github/workflows/generate-antlr-regression-reports.yml
+    with:
+      patch-branch: 'ci-test-branch'
+      project-names: '[ "MaterialDesignLibrary" ]'
+  run-generate-check-regression-report:
+    uses: ./.github/workflows/generate-check-regression-reports.yml
+    with:
+      patch-branch: 'ci-test-branch'
+      projects-file: "test-projects.properties"
+      configs: '[ "test" ]'
+  run-upload-reports:
+    uses: ./.github/workflows/upload-reports.yml
+    secrets: inherit
+    with:
+      patch-branch: 'ci-test-branch'
+      projects-file: "test-projects.properties"
+    needs: [
+      run-generate-antlr-regression-report,
+      run-generate-check-regression-report
+    ]

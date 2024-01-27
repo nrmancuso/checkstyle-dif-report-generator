@@ -1,46 +1,51 @@
 name: Generate Check Regression Reports
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches: '*'
+  workflow_call:
+    inputs:
+      patch-branch:
+        description: 'The patch branch to generate the report for'
+        required: true
+        type: string
+      projects-file:
+        description: 'project file name for check regression report'
+        required: true
+        type: string
+      configs:
+        description: 'Json array of config names (no .xml extension) for check regression report'
+        type: string
+        required: true
 
 jobs:
   generate_check_regression_report:
     runs-on: ubuntu-latest
     container: checkstyle/jdk-11-groovy-git-mvn:11.0.13__3.0.9__2.25.1__3.6.3
     env:
-      MAVEN_OPTS: -Xmx4096m
-      JAVA_OPTS: -Xmx4096m
+      MAVEN_OPTS: -Xmx5g
+      JAVA_OPTS: -Xmx5g
       CHECKSTYLE_DIRECTORY: checkstyle
       ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
 
-      ## change these for report generation
-      PATCH_BRANCH: ci-test-branch
-      PROJECTS_FILE: test-projects.properties
+      PATCH_BRANCH: ${{ inputs.patch-branch }}
+      PROJECTS_FILE: ${{ matrix.projects_filename }}
 
     strategy:
       matrix:
-        # use config name with no '.xml' extension
         # generate list with: 'for f in $(find configs -name '*.xml'); do echo " - \"$(echo $f | cut -d '/' -f 2 | cut -d '.' -f 1)\""; done'
-        config_name:
-          - "test"
-#          - "part1"
-#          - "part2"
-#          - "part3"
-#          - "part4"
-#          - "part5"
-#          - "part6"
-#          - "sevntu-check-regression_part_1"
-#          - "sevntu-check-regression_part_2"
+        config_name: ${{ fromJson(inputs.configs) }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v3
         with:
           path: main
+      - name: Cache local Maven repository
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Checkout Checkstyle
         uses: actions/checkout@v3
@@ -67,11 +72,13 @@ jobs:
       - name: Generate report
         env:
           CONFIG_FILE: ${{ matrix.config_name }}.xml
+          PROJECTS_FILE: ${{ inputs.projects-file }}
         run: main/scripts/generate-check-regression-report.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.config_name }}-report
+          name: ${{ matrix.config_name }}
           path: contribution/checkstyle-tester/reports/diff
           retention-days: 60
+          if-no-files-found: error

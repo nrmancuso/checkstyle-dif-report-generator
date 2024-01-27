@@ -1,0 +1,67 @@
+name: Generate All Reports
+
+on:
+  workflow_dispatch:
+    inputs:
+      project-names:
+        description: 'Json array of project names for ANTLR diff report generation'
+        required: true
+        type: choice
+        default: '[ "MaterialDesignLibrary" ]'
+        options:
+          - '[ "MaterialDesignLibrary" ]'
+          - '[ "checkstyle" ]'
+          - '[ "openjdk21" ]'
+          - '[ "openjdk21", "checkstyle" ]'
+      patch-branch:
+        description: 'The checkstyle patch branch'
+        required: true
+        type: string
+        default: 'ci-test-branch'
+      projects-file:
+        description: 'project file for check regression report'
+        required: true
+        type: choice
+        default: "test-projects.properties"
+        options:
+          - "test-projects.properties"
+          - "projects-to-test-on.properties"
+          - "openjdk-21-project.properties"
+          - "github-action-projects1.properties"
+          - "github-action-projects2.properties"
+      configs:
+        description: 'Json array of config names (no .xml extension) for check regression report'
+        default: '[ "test" ]'
+        type: choice
+        required: true
+        options:
+          - '[ "test" ]'
+          - '[
+              "part1", "part2", "part3", "part4", "part5", "part6",
+              "sevntu-check-regression_part_1", "sevntu-check-regression_part_2"
+             ]'
+
+jobs:
+  run-generate-antlr-regression-report:
+    uses: ./.github/workflows/generate-antlr-regression-reports.yml
+    with:
+      patch-branch: ${{ github.event.inputs.patch-branch }}
+      project-names: ${{ github.event.inputs.project-names }}
+
+  run-generate-check-regression-report:
+    uses: ./.github/workflows/generate-check-regression-reports.yml
+    with:
+      patch-branch: ${{ github.event.inputs.patch-branch }}
+      projects-file: ${{ github.event.inputs.projects-file }}
+      configs: ${{ github.event.inputs.configs }}
+
+  run-upload-reports:
+    uses: ./.github/workflows/upload-reports.yml
+    secrets: inherit
+    with:
+      patch-branch: ${{ github.event.inputs.patch-branch }}
+      projects-file: ${{ github.event.inputs.projects-file }}
+    needs: [
+      run-generate-antlr-regression-report,
+      run-generate-check-regression-report
+    ]

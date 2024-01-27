@@ -1,0 +1,80 @@
+name: Upload reports to s3 bucket and show links
+
+on:
+  workflow_call:
+    inputs:
+      patch-branch:
+        description: 'The branch to generate the report for'
+        required: true
+        type: string
+      projects-file:
+        description: 'project file name for check regression report'
+        required: true
+        type: string
+jobs:
+  upload-reports:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download reports
+        uses: actions/download-artifact@v3
+        with:
+          path: temp-reports
+
+      - name: List reports
+        run: |
+          echo "LS -R:" && ls -R
+
+      - name: Setup reports to be uploaded
+        id: setup-reports
+        run: |
+          DATE=$(date +'%Y-%m-%d-T-%H-%M-%S')
+          REPORT_DIR="reports/${{ inputs.patch-branch }}/$DATE"
+          echo "REPORT_DIR=$REPORT_DIR" >> $GITHUB_OUTPUT
+          echo "REPORT_PR_BRANCH_NAME=${{ inputs.patch-branch }}-$DATE" >> $GITHUB_OUTPUT
+          mkdir -p $REPORT_DIR
+          cp -r temp-reports/* $REPORT_DIR
+          rm -rf temp-reports
+          echo "LS -R:" && ls -R $REPORT_DIR
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Copy reports to S3 bucket
+        id: copy-reports-to-s3
+        env:
+          AWS_BUCKET_NAME: checkstyle-reports
+          AWS_REGION: us-east-2
+          REPORT_DIR: ${{ steps.setup-reports.outputs.REPORT_DIR }}
+        run: |
+          BUCKET_LINK="https://${{env.AWS_BUCKET_NAME}}.s3.${{env.AWS_REGION}}.amazonaws.com"
+          echo "BUCKET_LINK=$BUCKET_LINK"
+          echo "BUCKET_LINK=$BUCKET_LINK" >> $GITHUB_OUTPUT     
+          aws s3 cp $REPORT_DIR "s3://${AWS_BUCKET_NAME}/$REPORT_DIR" --recursive
+      - name: Show links to reports
+        env:
+          BUCKET_LINK: ${{ steps.copy-reports-to-s3.outputs.BUCKET_LINK }}
+        run: |                   
+          # put all links into a text file to store as artifacts
+          echo "Projects file: ${{ inputs.projects-file }}" > links.txt
+          echo "Patch branch: ${{ inputs.patch-branch }}" >> links.txt
+          echo "" >> links.txt
+          for f in $(find ${{ steps.setup-reports.outputs.REPORT_DIR }} -maxdepth 2 -type f -name 'index.html'); do
+            echo "$BUCKET_LINK/$f" >> links.txt
+            echo "" >> links.txt
+          done
+          
+          echo "Links:"
+          cat links.txt
+      - name: Upload links to artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: links
+          path: links.txt
