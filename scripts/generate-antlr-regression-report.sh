@@ -4,16 +4,21 @@ set -e
 
 cd contribution/checkstyle-tester || exit 1
 
-if [ ! -d "$ROOT_DIR" ]; then
-  echo "'ROOT_DIR' variable must be set."
+if [ -z "$ROOT_DIR" ]; then
+  echo "'ROOT_DIR' variable must be set." && exit 1
 fi
 
-if [ ! -d "$PROJECT" ]; then
-  echo "'PROJECT' variable must be set."
+if [ -z "$PROJECT" ]; then
+  echo "'PROJECT' variable must be set." && exit 1
 fi
 
-if [ ! -d "$PATCH_BRANCH" ]; then
-  echo "'PATCH_BRANCH' variable must be set."
+if [ -z "$PATCH_BRANCH" ]; then
+  echo "'PATCH_BRANCH' variable must be set." && exit 1
+fi
+
+# this should point to the report generation repo
+if [ ! -d "$REPORT_REPO_DIR" ]; then
+  echo "'REPORT_REPO_DIR' variable must be set." && exit 1
 fi
 
 # set env variables, depends on $ROOT_DIR
@@ -36,13 +41,12 @@ export SITE_SAVE_REF_DIR=$TESTER_DIR/reports/saverefs
 # comment out source line, we handle variables above
 sed -e '/source/s/^/#/g' -i launch_diff_antlr.sh
 
-# comment out guava
-sed -i'' 's/^guava/#guava/' projects-to-test-on.properties || true
+# ATTENTION: we need to delete the existing projects file and use our own!
+rm -f projects-to-test-on.properties
+# need to grep this project's name from the projects file
 
-# uncomment project to test on
-sed -i'' "s/#${PROJECT}/${PROJECT}/" projects-to-test-on.properties
-
-# comment out guava
-sed -i'' 's/^guava/#guava/' projects-to-test-on.properties
+grep "$PROJECT" "$REPORT_REPO_DIR/projects/projects-to-test-on.properties" > projects-to-test-on.properties
+echo "Generated projects file contents:"
+cat projects-to-test-on.properties
 
 ./launch_diff_antlr.sh "$PATCH_BRANCH"
