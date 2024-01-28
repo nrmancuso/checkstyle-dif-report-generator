@@ -22,7 +22,7 @@ if [ ! -d "$REPORT_REPO_DIR" ]; then
 fi
 
 # set env variables, depends on $ROOT_DIR
-export CONTACTSERVER=true
+export CONTACTSERVER=false
 export PULL_REMOTE=remotes/origin
 export CHECKSTYLE_DIR=$ROOT_DIR/checkstyle
 export SEVNTU_DIR=$ROOT_DIR/sevntu.checkstyle
