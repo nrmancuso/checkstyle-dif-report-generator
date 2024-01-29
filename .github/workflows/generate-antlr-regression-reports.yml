@@ -52,7 +52,7 @@ jobs:
       - name: Checkout Contribution
         uses: actions/checkout@v3
         with:
-          repository: checkstyle/contribution
+          repository: nrmancuso/contribution
           path: contribution
 
       - name: Build patch-diff-report-tool
