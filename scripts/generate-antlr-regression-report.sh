@@ -3,6 +3,9 @@ set -e
 # Usage: Automate ANTLR regression report
 
 cd contribution/checkstyle-tester || exit 1
+# TODO: this is a temproraru hack, we need to move script into this file
+git fetch --all
+git checkout fix-remotes
 
 if [ -z "$ROOT_DIR" ]; then
   echo "'ROOT_DIR' variable must be set." && exit 1
