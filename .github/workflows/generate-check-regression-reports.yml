@@ -26,13 +26,13 @@ jobs:
       CHECKSTYLE_DIRECTORY: checkstyle
       ROOT_DIR: /__w/checkstyle-diff-report-generator/checkstyle-diff-report-generator
 
-      PATCH_BRANCH: ${{ inputs.patch-branch }}
-      PROJECTS_FILE: ${{ matrix.projects_filename }}
+      PATCH_BRANCH: emptylineseparator
+      PROJECTS_FILE: projects-to-test-on.properties
 
     strategy:
       matrix:
         # generate list with: 'for f in $(find configs -name '*.xml'); do echo " - \"$(echo $f | cut -d '/' -f 2 | cut -d '.' -f 1)\""; done'
-        config_name: ${{ fromJson(inputs.configs) }}
+        config_name: "check"
 
     steps:
       - name: Checkout
@@ -50,7 +50,7 @@ jobs:
       - name: Checkout Checkstyle
         uses: actions/checkout@v3
         with:
-          repository: nrmancuso/checkstyle
+          repository: mahfouz72/checkstyle
           path: checkstyle
           fetch-depth: 0
 
